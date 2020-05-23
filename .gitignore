@@ -1,0 +1,9 @@
+testImgs/
+venv/
+.idea/
+Results_*/
+evalCounter_*.cfg
+checkpoint
+JPGEnhanceCheckpoint_*
+model.png
+test.png
