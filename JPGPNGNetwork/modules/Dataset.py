@@ -14,8 +14,8 @@ DATASET_BASE_DIR = "C:\\ImgDataset"
 class DataSet:
     processes = []
 
-    NUMBER_OF_CPU_THREADS = 20
-    SIZE_OF_QUEUE = 15
+    NUMBER_OF_CPU_THREADS = 10
+    SIZE_OF_QUEUE = 10
 
     def __init__(self):
         self.datasetDir = [f for f in os.listdir(DATASET_BASE_DIR)
@@ -23,13 +23,14 @@ class DataSet:
         self.datasetSize = len(self.datasetDir)
         self.batchQueue = multiprocessing.Queue()
         self.currentlyProcessing = multiprocessing.Value('i', 0)
+        self.running = multiprocessing.Value('i', 1)
 
     def getBatch(self):
         if not self.batchQueue.empty():
             batch = self.batchQueue.get()
             print("Batch Available\n"
                   "Batch size: " + str(len(batch[1])) + "\n"
-                  "Size of queue: " + str(self.batchQueue.qsize() - 1))
+                                                        "Size of queue: " + str(self.batchQueue.qsize()))
             return batch
         else:
             time.sleep(1)
@@ -38,6 +39,7 @@ class DataSet:
     @classmethod
     def destroy(cls):
         print("Waiting for threads to end...")
+
         for p in cls.processes:
             p.join()
 
@@ -45,7 +47,7 @@ class DataSet:
         for x in range(0, DataSet.NUMBER_OF_CPU_THREADS):
             self.processes.append(
                 multiprocessing.Process(target=DataSetProcessor.asyncUpdateDataset,
-                                        args=(self.batchQueue, self, self.currentlyProcessing)))
+                                        args=(self.batchQueue, self, self.currentlyProcessing, self.running)))
 
         i = 0
         for p in self.processes:
@@ -117,23 +119,26 @@ class DataSetProcessor:
     queue = None
     dataSet = None
     currentlyProcessing = None
+    running = None
 
     @classmethod
-    def asyncUpdateDataset(cls, queue, dataSet, currentlyProcessing):
+    def asyncUpdateDataset(cls, queue, dataSet, currentlyProcessing, running):
         cls.queue = queue
         cls.dataSet = dataSet
         cls.currentlyProcessing = currentlyProcessing
+        cls.running = running
 
-        if queue.qsize() + currentlyProcessing.value < DataSet.SIZE_OF_QUEUE:
-            currentlyProcessing.value += 1
+        while running.value is 1:
+            if queue.qsize() + currentlyProcessing.value < DataSet.SIZE_OF_QUEUE:
+                currentlyProcessing.value += 1
 
-            print("Creating batch async")
-            cls.makeNextBatch()
-            print("Thread finished creating batch")
+                print("Creating batch async")
+                cls.makeNextBatch()
+                print("Thread finished creating batch")
 
-            currentlyProcessing.value -= 1
-        else:
-            time.sleep(1)
+                currentlyProcessing.value -= 1
+            else:
+                time.sleep(1)
 
     @classmethod
     def getImageSet(cls, index):
@@ -176,25 +181,26 @@ class DataSetProcessor:
         if height % WINDOW_SIZE > 0:
             partH += 1
 
-        batches = []
+        batches = np.zeros(shape=(partW * partH, WINDOW_SIZE, WINDOW_SIZE, 3))
 
         for w in range(partW):
             for h in range(partH):
-                column = []
+                # column = np.zeros(shape=(WINDOW_SIZE, WINDOW_SIZE, 3))
                 for y in range(0, WINDOW_SIZE):
 
-                    row = []
+                    # row = np.zeros(shape=(WINDOW_SIZE, 3))
                     for x in range(0, WINDOW_SIZE):
                         try:
-                            pixel = pixels[h * WINDOW_SIZE + x][w * WINDOW_SIZE + y][0:3]
-                            row.append(pixel)
+                            pixel = np.array(pixels[h * WINDOW_SIZE + x][w * WINDOW_SIZE + y][0:3])
+                            batches[h + w * partH][y][x] = pixel
                         except Exception as e:
+                            continue
                             # print("No pixel at coordinate (" + str(w * WINDOW_SIZE + x) + ", "
                             #      + str(h * WINDOW_SIZE + y) + "). Setting pixel to (0,0,0)\n")
                             # print(e)
-                            row.append((0, 0, 0))
-                    column.append(row)
-                batches.append(column)
+                            # row.append((0, 0, 0))
+                    # column.append(row)
+                # batches.append(column)
 
         return batches
 

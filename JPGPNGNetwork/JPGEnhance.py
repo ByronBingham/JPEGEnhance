@@ -5,6 +5,9 @@ from modules.Dataset import DataSet, WINDOW_SIZE
 import numpy as np
 import datetime as dt
 
+imagesToTrain = 100000
+evalFrequency = 25
+
 
 class JPGEnhance:
 
@@ -71,9 +74,6 @@ class JPGEnhance:
         print("Finished initializing dataset")
 
         # start training
-
-        imagesToTrain = 100000
-        evalFrequency = 25
         i = 0
         while True:  # i < imagesToTrain:
             try:
