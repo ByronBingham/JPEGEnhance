@@ -22,6 +22,48 @@ class JPGEnhance:
         print("eager or not: " + str(tf.executing_eagerly()))
 
         # create network
+        self.createModel()
+
+        # load model checkpoint if exists
+        self.checkpointPath = "./JPGEnhanceCheckpoint_" + str(WINDOW_SIZE)
+
+        try:
+            self.model.load_weights(self.checkpointPath)
+        except Exception as e:
+            print("Weights not loaded. Will create new weights")
+            print(str(e))
+
+        # load data set
+        self.dataSet.startFillQueue()
+        print("Finished initializing dataset")
+
+        # start training
+        i = 0
+        while i < imagesToTrain:
+            try:
+                self.trainStep()
+            except Exception as e:
+                print("Training step failed. Skipping step")
+                print(str(e) + "\n")
+                continue
+
+            accuracy = self.model.metrics
+            print("Training step " + str(i) + " finished\n")
+
+            if i % evalFrequency == 0:
+                print("Beginning eval step")
+                try:
+                    self.evalStep()
+                except Exception as e:
+                    print("Evaluation step failed. Skipping step")
+                    print(str(e) + "\n")
+                    continue
+
+            i += 1
+
+        DataSet.destroy()
+
+    def createModel(self):
         print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
         print(tf.config.experimental.list_physical_devices('GPU'))
 
@@ -59,45 +101,6 @@ class JPGEnhance:
         self.model.summary()
 
         tf.keras.utils.plot_model(self.model, to_file='model.png')
-
-        # load model checkpoint if exists
-        self.checkpointPath = "./JPGEnhanceCheckpoint_" + str(WINDOW_SIZE)
-
-        try:
-            self.model.load_weights(self.checkpointPath)
-        except Exception as e:
-            print("Weights not loaded. Will create new weights")
-            print(str(e))
-
-        # load data set
-        self.dataSet.startFillQueue()
-        print("Finished initializing dataset")
-
-        # start training
-        i = 0
-        while True:  # i < imagesToTrain:
-            try:
-                self.trainStep()
-            except Exception as e:
-                print("Training step failed. Skipping step")
-                print(str(e) + "\n")
-                continue
-
-            accuracy = self.model.metrics
-            print("Training step " + str(i) + " finished\n")
-
-            if i % evalFrequency == 0:
-                print("Beginning eval step")
-                try:
-                    self.evalStep()
-                except Exception as e:
-                    print("Evaluation step failed. Skipping step")
-                    print(str(e) + "\n")
-                    continue
-
-            i += 1
-
-        DataSet.destroy()
 
     def clipData(self, data):
         for i in range(0, len(data)):
