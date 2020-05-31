@@ -38,29 +38,9 @@ class JPGEnhance:
         print("Finished initializing dataset")
 
         # start training
-        i = 0
-        while i < imagesToTrain:
-            try:
-                self.trainStep()
-            except Exception as e:
-                print("Training step failed. Skipping step")
-                print(str(e) + "\n")
-                continue
+        self.train()
 
-            accuracy = self.model.metrics
-            print("Training step " + str(i) + " finished\n")
-
-            if i % evalFrequency == 0:
-                print("Beginning eval step")
-                try:
-                    self.evalStep()
-                except Exception as e:
-                    print("Evaluation step failed. Skipping step")
-                    print(str(e) + "\n")
-                    continue
-
-            i += 1
-
+        # do cleanup
         DataSet.destroy()
 
     def createModel(self):
@@ -186,6 +166,29 @@ class JPGEnhance:
 
         self.model.save_weights(self.checkpointPath)
         print("Done with training step")
+
+    def train(self):
+        i = 0
+        while i < imagesToTrain:
+            try:
+                self.trainStep()
+            except Exception as e:
+                print("Training step failed. Skipping step")
+                print(str(e) + "\n")
+                continue
+
+            print("Training step " + str(i) + " finished\n")
+
+            if i % evalFrequency == 0:
+                print("Beginning eval step")
+                try:
+                    self.evalStep()
+                except Exception as e:
+                    print("Evaluation step failed. Skipping step")
+                    print(str(e) + "\n")
+                    continue
+
+            i += 1
 
 
 if __name__ == '__main__':
