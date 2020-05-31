@@ -21,6 +21,9 @@ class JPGEnhance:
         tf.compat.v1.enable_control_flow_v2()
         print("eager or not: " + str(tf.executing_eagerly()))
 
+        # set TensorFlow settings
+        JPGEnhance.tensorFlowSettings()
+
         # create network
         self.createModel()
 
@@ -43,7 +46,8 @@ class JPGEnhance:
         # do cleanup
         DataSet.destroy()
 
-    def createModel(self):
+    @staticmethod
+    def tensorFlowSettings():
         print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
         print(tf.config.experimental.list_physical_devices('GPU'))
 
@@ -53,6 +57,8 @@ class JPGEnhance:
             tf.config.experimental.set_memory_growth(physical_devices[0], True)
         except Exception as e:
             print(e)
+
+    def createModel(self):
 
         inputs = tf.keras.Input(shape=(WINDOW_SIZE, WINDOW_SIZE, 3))
 
